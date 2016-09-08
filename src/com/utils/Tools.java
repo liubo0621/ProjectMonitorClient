@@ -1,5 +1,6 @@
 package com.utils;
 
+import java.io.IOException;
 import java.net.InetAddress;
 import java.net.NetworkInterface;
 import java.net.SocketException;
@@ -27,6 +28,10 @@ import com.pojo.Server;
  */
 public class Tools {
 	Sigar sigar = new Sigar();
+	
+	static{
+		System.loadLibrary("sigar-x86-winnt");
+	}
 	
 	public static Tools getTools(){
 		return new Tools();
@@ -227,6 +232,17 @@ public class Tools {
 		return cpus;
 	}
 	
+	public void restartServer(){
+		String command = "shutdown -r -f -t 0";
+		try {
+			Runtime.getRuntime().exec(command);
+			System.out.println(command);
+		} catch (IOException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		} 
+	}
+	
     
 	public static void main(String[] args) throws SigarException, SocketException, UnknownHostException {
 		Tools tools = Tools.getTools();
@@ -240,7 +256,8 @@ public class Tools {
 //		tools.getServerInfo();
 //		tools.getSys();
 //		tools.getMemory();
-		tools.getCpu();
+//		tools.getCpu();
+		tools.restartServer();
 		
 //		mac: C8-5B-76-03-A6-C4
 	}
