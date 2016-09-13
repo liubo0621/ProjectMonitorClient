@@ -1,12 +1,27 @@
 package com.utils;
 
+import java.awt.Desktop;
+import java.io.BufferedReader;
+import java.io.File;
+import java.io.FileInputStream;
+import java.io.FileNotFoundException;
+import java.io.FileWriter;
 import java.io.IOException;
+import java.io.InputStream;
+import java.io.InputStreamReader;
 import java.net.InetAddress;
 import java.net.NetworkInterface;
 import java.net.SocketException;
 import java.net.UnknownHostException;
+import java.text.ParseException;
+import java.text.SimpleDateFormat;
 import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Date;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Properties;
+import java.util.Set;
 
 import org.hyperic.sigar.CpuInfo;
 import org.hyperic.sigar.CpuPerc;
@@ -106,6 +121,9 @@ public class Tools {
 		for (int i = 0; i < fslist.length; i++) {
 			FileSystem fs = fslist[i];
 			
+//			System.out.println(fs.getDevName());
+//			System.out.println(fs.getTypeName());
+			
 			phyMemory.setPhyName(fs.getDevName());
 			phyMemory.setSysTypeName(fs.getSysTypeName());
 			phyMemory.setTypeName(fs.getTypeName());
@@ -113,46 +131,20 @@ public class Tools {
 			FileSystemUsage usage = null;
 			try {
 				usage = sigar.getFileSystemUsage(fs.getDirName());
-			} catch (SigarException e) {
-					e.printStackTrace();
-				continue;
-			}
-			switch (fs.getType()) {
-			case 0: // TYPE_UNKNOWN ：未知
-				break;
-			case 1: // TYPE_NONE
-				break;
-			case 2: // TYPE_LOCAL_DISK : 本地硬盘
-//				// 文件系统总大小
-//				System.out.println(" Total = " + usage.getTotal() + "KB");
-//				// 文件系统剩余大小
-//				System.out.println(" Free = " + usage.getFree() + "KB");
-//				// 文件系统可用大小
-//				System.out.println(" Avail = " + usage.getAvail() + "KB");
-//				// 文件系统已经使用量
-//				System.out.println(" Used = " + usage.getUsed() + "KB");
-//				double usePercent = usage.getUsePercent() * 100D;
-//				// 文件系统资源的利用率
-//				System.out.println(" Usage = " + usePercent + "%");
-//				
+				
 				phyMemory.setMemory(usage.getTotal());
 				phyMemory.setMemoryUsed(usage.getUsed());
 				phyMemory.setMemoryAvail(usage.getAvail());
 				phyMemory.setMemoryFree(usage.getFree());
 				phyMemory.setUsePercent(usage.getUsePercent());
-				break;
-			case 3:// TYPE_NETWORK ：网络
-				break;
-			case 4:// TYPE_RAM_DISK ：闪存
-				break;
-			case 5:// TYPE_CDROM ：光驱
-				break;
-			case 6:// TYPE_SWAP ：页面交换
-				break;
+				
+				phyMemorys.add(phyMemory);
+				
+			} catch (SigarException e) {
+					e.printStackTrace();
+				continue;
 			}
-			phyMemorys.add(phyMemory);
 		}
-		
 		return phyMemorys;
 	}
 	
@@ -165,36 +157,36 @@ public class Tools {
 		
 		//memory k
 		Mem mem = sigar.getMem();
-		server.setMemory(mem.getTotal() / 1000L);
-		server.setMemoryFree(mem.getFree() / 1000L);
-		server.setMemoryUsed(mem.getUsed() / 1000L);
+		server.setMemory(mem.getTotal() / 1024L);
+		server.setMemoryFree(mem.getFree() / 1024L);
+		server.setMemoryUsed(mem.getUsed() / 1024L);
 		
 		//swap k
 		Swap swap = sigar.getSwap();
-		server.setSwap(swap.getTotal() / 1000L);
-		server.setSwapFree(swap.getFree() / 1000L);
-		server.setSwapUsed(swap.getUsed() / 1000L);
+		server.setSwap(swap.getTotal() / 1024L);
+		server.setSwapFree(swap.getFree() / 1024L);
+		server.setSwapUsed(swap.getUsed() / 1024L);
 	}
 	
-//	public void getMemory() throws SigarException{
-//		// 物理内存信息  
-//		Mem mem = sigar.getMem();  
-//		// 内存总量  
-//		System.out.println("Total = " + mem.getTotal() / 1024L / 1024 + "M av");  
-//		// 当前内存使用量  
-//		System.out.println("Used = " + mem.getUsed() / 1024L / 1024 + "M used");  
-//		// 当前内存剩余量  
-//		System.out.println("Free = " + mem.getFree() / 1024L / 1024 + "M free");  
-//		  
-//		// 系统页面文件交换区信息  
-//		Swap swap = sigar.getSwap();  
-//		// 交换区总量  
-//		System.out.println("Total = " + swap.getTotal() / 1024L + "K av");  
-//		// 当前交换区使用量  
-//		System.out.println("Used = " + swap.getUsed() / 1024L + "K used");  
-//		// 当前交换区剩余量  
-//		System.out.println("Free = " + swap.getFree() / 1024L + "K free");  
-//	}
+	public void getMemory() throws SigarException{
+		// 物理内存信息  
+		Mem mem = sigar.getMem();  
+		// 内存总量  
+		System.out.println("Total = " + mem.getTotal() / 1024L / 1024 + "M av");  
+		// 当前内存使用量  
+		System.out.println("Used = " + mem.getUsed() / 1024L / 1024 + "M used");  
+		// 当前内存剩余量  
+		System.out.println("Free = " + mem.getFree() / 1024L / 1024 + "M free");  
+		  
+		// 系统页面文件交换区信息  
+		Swap swap = sigar.getSwap();  
+		// 交换区总量  
+		System.out.println("Total = " + swap.getTotal() / 1024L + "K av");  
+		// 当前交换区使用量  
+		System.out.println("Used = " + swap.getUsed() / 1024L + "K used");  
+		// 当前交换区剩余量  
+		System.out.println("Free = " + swap.getFree() / 1024L + "K free");  
+	}
 	
 	
 	public List<CPU> getCpu() throws SigarException{
@@ -207,10 +199,10 @@ public class Tools {
 		for (int i = 0; i < infos.length; i++) {// 不管是单块CPU还是多CPU都适用  
 		    CpuInfo info = infos[i];
 		    CpuPerc cpuPerc= cpuList[i];
-//		    System.out.println("mhz=" + info.getMhz());// CPU的总量MHz  
-//		    System.out.println("vendor=" + info.getVendor());// 获得CPU的卖主，如：Intel  
-//		    System.out.println("model=" + info.getModel());// 获得CPU的类别，如：Celeron  
-//		    System.out.println("cache size=" + info.getCacheSize());// 缓冲存储器数量  
+		    System.out.println("mhz=" + info.getMhz());// CPU的总量MHz  
+		    System.out.println("vendor=" + info.getVendor());// 获得CPU的卖主，如：Intel  
+		    System.out.println("model=" + info.getModel());// 获得CPU的类别，如：Celeron  
+		    System.out.println("cache size=" + info.getCacheSize());// 缓冲存储器数量  
 		    
 		    cpu.setMsz(info.getMhz());
 		    cpu.setVendor(info.getVendor());
@@ -232,19 +224,146 @@ public class Tools {
 		return cpus;
 	}
 	
-	public void restartServer(){
-		String command = "shutdown -r -f -t 0";
+    ///////////////////////////////////////////////////
+	
+	public String executeCommand(String command){
+		String msg = "";
 		try {
-			Runtime.getRuntime().exec(command);
-			System.out.println(command);
+			Process processList = Runtime.getRuntime().exec(command);
+			InputStream in = processList.getInputStream();
+			BufferedReader reader = new BufferedReader(new InputStreamReader(in));
+			
+			String str = null;
+			while((str = reader.readLine()) != null){
+				msg += str + "\n";
+			}
 		} catch (IOException e) {
 			// TODO Auto-generated catch block
 			e.printStackTrace();
-		} 
+		}
+		
+		return msg.trim();
 	}
 	
+	//使用Desktop启动应用程序    
+	public void startProgram(String programPath){
+		Log.out.info("启动应用程序：" + programPath);
+		try {
+			Desktop.getDesktop().open(new File(programPath));
+		} catch (Exception e) {
+			e.printStackTrace();
+			Log.out.error("应用程序：" + programPath + "不存在！");
+		}
+	}
+	
+	///////////////////////////////////////////////////
+	
+	private static String OS = System.getProperty("os.name").toLowerCase();  
+	
+	public boolean isLinux(){  
+        return OS.indexOf("linux")>=0;  
+    }
+	
+	public boolean isMacOS() {
+		return OS.indexOf("mac") >= 0 && OS.indexOf("os") > 0&& OS.indexOf("x") < 0;
+	}  
+	
+	public boolean isWindows(){  
+	     return OS.indexOf("windows")>=0;  
+    } 
+	
+    ///////////////////////////////////////////////////
+	
+    //读取properties文件
+    static Properties pps = new Properties();
+    static{
+		try {
+			String path = Thread.currentThread().getContextClassLoader().getResource("client_config.properties").getPath();
+			pps.load(new FileInputStream(path));
+		} catch (IOException e) {
+			e.printStackTrace();
+		}
+    }
+	public String getProperty(String key) {
+		return pps.getProperty(key).trim();
+	}
+	
+    ///////////////////////////////////////////////////
+	
+	public void writeFile(final String fileName, final String content){
+		try {
+			//判断目录是否存在 不存在创建
+    		File file = new File(fileName);
+    		if (!file.getParentFile().exists()) {
+    			file.getParentFile().mkdirs();
+    		}
+    		
+    		FileWriter out = new FileWriter(fileName, false);
+			out.write(content);
+			out.flush();
+			out.close();
+		} catch (FileNotFoundException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		} catch (IOException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
+		
+	}
+	
+ 
+    public String readFile(final String fileName){
+    	String str = "";
+    	try {
+    		File file = new File(fileName);
+    		if (file.exists()) {
+    			FileInputStream is = new FileInputStream(file);
+    			byte[] buffer = new byte[1024];
+    			int byteRead;
+    			while((byteRead = is.read(buffer)) != -1){
+    				str += new String(buffer, 0, byteRead);
+    			}
+
+    			is.close();
+//    			file.delete();
+			}
+		
+		} catch (FileNotFoundException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		} catch (IOException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
+    	
+    	return str;
+    }
     
-	public static void main(String[] args) throws SigarException, SocketException, UnknownHostException {
+    ///////////////////////////////////////////////////
+    
+    public long getCurrentSecond(){
+    	return new Date().getTime() / 1000;
+    }
+    
+    public long getBetweenCurrrentTime(String oldTime){
+    	SimpleDateFormat df = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
+		Date writeDate = null;
+		try {
+			writeDate = df.parse(oldTime);
+		} catch (ParseException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
+		Date currentDate = new Date();
+		long betweenTime = currentDate.getTime() - writeDate.getTime();
+		
+		return betweenTime;
+    }
+
+    ///////////////////////////////////////////////////
+	
+	public static void main(String[] args) throws SigarException, IOException {
 		Tools tools = Tools.getTools();
 		
 //		String ip = tools.getLocalIP();
@@ -257,7 +376,13 @@ public class Tools {
 //		tools.getSys();
 //		tools.getMemory();
 //		tools.getCpu();
-		tools.restartServer();
+//		tools.startProgram("C:\\Users\\Boris\\Desktop\\Test.jar");
+//		tools.startProgram("D:\\WorkSpace\\VC\\SocketService\\Debug\\SocketService1.exe");
+		
+//		tools.restartServer();
+		
+//		long totalMem = Runtime.getRuntime().totalMemory();
+//		System.out.println(totalMem / 1024 + "k");
 		
 //		mac: C8-5B-76-03-A6-C4
 	}
