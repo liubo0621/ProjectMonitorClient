@@ -1,10 +1,12 @@
 package com.client;
 
 
-import java.text.ParseException;
-import java.text.SimpleDateFormat;
-import java.util.Date;
-
+import com.manager.ProcessManager;
+import com.manager.ServerManager;
+import com.manager.platform.ProcessManagerLinux;
+import com.manager.platform.ProcessManagerWin;
+import com.manager.platform.ServerManagerLinux;
+import com.manager.platform.ServerManagerWin;
 import com.utils.Log;
 import com.utils.Tools;
 
@@ -13,8 +15,10 @@ import com.utils.Tools;
  * @description 
  * 2016年9月9日
  */
-public abstract class Client implements Runnable{
-	protected Tools tools;
+public class Client implements Runnable{
+	private Tools tools;
+	private ProcessManager processManager;
+	private ServerManager serverManager;
 	
 	private int readFilePerSec;
 	private long processStartTime = 0; //应用程序开始时间  为第一次 读到文件时间
@@ -34,31 +38,15 @@ public abstract class Client implements Runnable{
 		readFilePerSec = Integer.parseInt(tools.getProperty("client.read_file_time")) * 1000;
 		statusFileName = tools.getProperty(process + ".status_file");
 		commandFileName = tools.getProperty(String.format("client%d.command_file", processSequence));
-	}
-	
-	
-	
-	public void getMemoryUsed(){
-		String msg = tools.executeCommand("tasklist");
-		String[] msgs = msg.split("\n");
 		
-		String taskName = null;
-		String taskPid = null;
-		String taskMemory = null;
-		
-		for (String str: msgs) {
-			if (str.startsWith("smss.exe")) {
-				System.out.println(str);
-				
-				String[] infos = str.split("\\s\\s*");  // \s*表示0个或以上的空格   匹配一个以上的空格
-				
-				taskName = infos[0];
-				taskPid = infos[1];
-				taskMemory = infos[4];
-			}
+		String processMain = tools.getProperty(process + ".main_class"); //可以理解为进程名
+		if (tools.isWindows()) {
+			processManager =  new ProcessManagerWin(processMain);
+			serverManager = new ServerManagerWin();
+		}else{
+			processManager =  new ProcessManagerLinux(processMain);
+			serverManager = new ServerManagerLinux();
 		}
-		System.out.println("taskName " + taskName + " taskPid " + taskPid + " taskMemory " + taskMemory);
-		
 	}
 	
 	public String readFile(){
@@ -95,12 +83,14 @@ public abstract class Client implements Runnable{
 			String str = msgs[i] + "/>";
 			Log.out.debug("read - " + str);
 			
+			//追加应用程序其他信息 和 服务器信息
+			
 			//向服务器发送收到的信息
 			
 			//崩溃
 			if (getKeyValue(str, "crash").equals("true")) {
 				//1. 关闭应用程序
-				closeProcess();
+				processManager.closeProcess();
 				
 				//2. 向应用程序发送导致crash的taskId
 				String taskId = getKeyValue(str, "task_id");
@@ -142,11 +132,7 @@ public abstract class Client implements Runnable{
 			}
 		}
 	}
-	
-	public abstract void closeProcess();
-	public abstract void restartServer();
-	public abstract String getProcessMemory();
-	public abstract String getProcessCpu();
+
 	
 	@Override
 	public void run() {
