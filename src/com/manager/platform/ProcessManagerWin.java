@@ -60,12 +60,15 @@ public class ProcessManagerWin extends ProcessManager {
 			key = getProcessPID();
 		}
 		
+		if(key == null) return null;
+		
 		String msg = tools.executeCommand("tasklist");
 		String[] msgs = msg.split("\n");
 		
 		String processMemory = null;
 		
 		for (String str: msgs) {
+			System.out.println(str);
 			if (str.contains(key)) {
 				String[] infos = str.split("\\s\\s*");  // \s*表示0个或以上的空格   匹配一个以上的空格
 				processMemory = infos[4];

@@ -16,6 +16,7 @@ import org.hyperic.sigar.Sigar;
 import org.hyperic.sigar.SigarException;
 import org.hyperic.sigar.Swap;
 
+import com.manager.platform.ServerManagerWin;
 import com.pojo.CPU;
 import com.pojo.PhysicalMemory;
 import com.pojo.Server;
@@ -29,10 +30,6 @@ import com.utils.Tools;
 public abstract class ServerManager {
 	private Sigar sigar = new Sigar();
 	protected Tools tools = Tools.getTools();
-	
-	static{
-		System.loadLibrary("sigar-x86-winnt");
-	}
 	
 	 /** 
      * @Method: getLocalIP 
@@ -207,5 +204,10 @@ public abstract class ServerManager {
 	}
 	
 	public abstract void restartServer();
+	
+	public static void main(String[] args) throws SigarException {
+		ServerManager s = new ServerManagerWin();
+		s.getMemory();
+	}
 
 }

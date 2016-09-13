@@ -80,10 +80,13 @@ public class Client implements Runnable{
 	private void dealReadedMsg(String msg){
 		String []msgs = msg.split("/>");
 		for (int i = 0; i < msgs.length; ++i) {
-			String str = msgs[i] + "/>";
-			Log.out.debug("read - " + str);
+			String str = msgs[i]+ "/>";
+			Log.out.debug("read - " + str );
 			
 			//追加应用程序其他信息 和 服务器信息
+			//process msg
+			String processCupUsed = processManager.getProcessCPU();
+			String processManagerUsed = processManager.getProcessMemory();
 			
 			//向服务器发送收到的信息
 			
