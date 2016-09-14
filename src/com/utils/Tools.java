@@ -9,6 +9,8 @@ import java.io.FileWriter;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
+import java.net.InetAddress;
+import java.net.UnknownHostException;
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
 import java.util.Date;
@@ -71,6 +73,23 @@ public class Tools {
 	public boolean isWindows(){  
 	     return OS.indexOf("windows")>=0;  
     } 
+	
+	 /** 
+     * @Method: getLocalIP 
+     * @Description: 返回本机地址
+     * @return
+     * String
+     */ 
+    public String getLocalIP(){
+		String ip = null;
+		try {
+			ip = InetAddress.getLocalHost().getHostAddress();
+		} catch (UnknownHostException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}  
+		return ip;
+	}
 	
     ///////////////////////////////////////////////////
 	
@@ -142,8 +161,9 @@ public class Tools {
     
     ///////////////////////////////////////////////////
     
-    public long getCurrentSecond(){
-    	return new Date().getTime() / 1000;
+    public String getCurrentTime(){
+    	SimpleDateFormat df = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
+    	return df.format(new Date());
     }
     
     public long getBetweenCurrrentTime(String oldTime){
@@ -158,8 +178,39 @@ public class Tools {
 		Date currentDate = new Date();
 		long betweenTime = currentDate.getTime() - writeDate.getTime();
 		
-		return betweenTime;
+		return betweenTime / 1000L;
     }
+    
+    /**
+     * @Method: getBetweenTime 
+     * @Description: 取时间间隔  年 月 日 时 分 秒
+     * @param time 间隔的秒数
+     * @return P1Y3M3DT2H2M2S 格式
+     * String
+     */
+    public String getBetweenTime(long time){
+    	long second = time % 60;
+		long minute = ((time - second) / 60) % 60;
+		long hour = ((time - minute * 60 - second) / (60 * 60)) % 24;
+		long day = ((time - hour * 60 * 60 - minute * 60 - second) / (60 * 60 * 24));
+		long year = day / 365;
+		long month = (day - year * 365) / 30;
+		day = day - year * 365 - month * 30;
+		
+//		System.out.println(String.format("%d 年 %d 月  %d 日 %d 时 %d 分 %d 秒", year, month, day, hour, minute, second));
+		//"P3Y6M4DT12H30M5S"
+		String betweenTime = String.format("P%dY%dM%dDT%dH%dM%dS", year, month, day, hour, minute, second);
+    	return betweenTime;
+    }
+    
+    public static void main(String[] args) {
+		long time = 1 * 365 * 24 * 60 * 60 + 3 * 30 * 24 * 60 * 60 + 3 * 24 * 60 * 60 + 2 * 60 * 60 + 2 * 60 + 2;//1y2m3d2h2m2s
+		System.out.println(String.format("time%d", time));
+		String btw = Tools.getTools().getBetweenTime(time);	
+		
+		System.out.println(btw);
+		
+	}
 
     ///////////////////////////////////////////////////
 }

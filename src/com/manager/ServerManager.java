@@ -17,9 +17,9 @@ import org.hyperic.sigar.SigarException;
 import org.hyperic.sigar.Swap;
 
 import com.manager.platform.ServerManagerWin;
-import com.pojo.CPU;
-import com.pojo.PhysicalMemory;
-import com.pojo.Server;
+import com.pojo.CpuMsg;
+import com.pojo.PhysicalMemoryMsg;
+import com.pojo.ServerMsg;
 import com.utils.Tools;
 
 /**
@@ -85,9 +85,8 @@ public abstract class ServerManager {
 	}
    
     
-	public List<PhysicalMemory> getPhysicMemory() {
-		List<PhysicalMemory> phyMemorys = new ArrayList<PhysicalMemory>();
-		PhysicalMemory phyMemory = new PhysicalMemory();
+	public List<PhysicalMemoryMsg> getPhysicMemory() {
+		List<PhysicalMemoryMsg> phyMemorys = new ArrayList<PhysicalMemoryMsg>();
 		FileSystem[] fslist = null;
 		
 		try {
@@ -100,22 +99,24 @@ public abstract class ServerManager {
 		for (int i = 0; i < fslist.length; i++) {
 			FileSystem fs = fslist[i];
 			
-//			System.out.println(fs.getDevName());
-//			System.out.println(fs.getTypeName());
+			System.out.println(fs.getDevName());
+			System.out.println(fs.getTypeName());
+			
+			PhysicalMemoryMsg phyMemory = new PhysicalMemoryMsg();
 			
 			phyMemory.setPhyName(fs.getDevName());
-			phyMemory.setSysTypeName(fs.getSysTypeName());
-			phyMemory.setTypeName(fs.getTypeName());
+			phyMemory.setPhySysTypeName(fs.getSysTypeName());
+			phyMemory.setPhyTypeName(fs.getTypeName());
 			
 			FileSystemUsage usage = null;
 			try {
 				usage = sigar.getFileSystemUsage(fs.getDirName());
 				
-				phyMemory.setMemory(usage.getTotal());
-				phyMemory.setMemoryUsed(usage.getUsed());
-				phyMemory.setMemoryAvail(usage.getAvail());
-				phyMemory.setMemoryFree(usage.getFree());
-				phyMemory.setUsePercent(usage.getUsePercent());
+				phyMemory.setPhyMemory((int)usage.getTotal());
+				phyMemory.setPhyMemoryUsed((int)usage.getUsed());
+				phyMemory.setPhyMemoryAvail((int)usage.getAvail());
+				phyMemory.setPhyMemoryFree((int)usage.getFree());
+				phyMemory.setPhyUsePercent(usage.getUsePercent());
 				
 				phyMemorys.add(phyMemory);
 				
@@ -127,24 +128,26 @@ public abstract class ServerManager {
 		return phyMemorys;
 	}
 	
-	public void getServerInfo() throws SigarException{
-		Server server = new Server();
+	public ServerMsg getServerInfo() throws SigarException{
+		ServerMsg server = new ServerMsg();
 		
-		server.setServerIp(getLocalIP());
-		server.setSystem(getOSName());
-		server.setMacAddr(getMACAddr());
+		server.setSerIp(getLocalIP());
+		server.setSerSystem(getOSName());
+		server.setSerMac(getMACAddr());
 		
 		//memory k
 		Mem mem = sigar.getMem();
-		server.setMemory(mem.getTotal() / 1024L);
-		server.setMemoryFree(mem.getFree() / 1024L);
-		server.setMemoryUsed(mem.getUsed() / 1024L);
+		server.setSerMemory((int)(mem.getTotal() / 1024L));
+		server.setSerMemoryFree((int)(mem.getFree() / 1024L));
+		server.setSerMemoryUsed((int)(mem.getUsed() / 1024L));
 		
 		//swap k
 		Swap swap = sigar.getSwap();
-		server.setSwap(swap.getTotal() / 1024L);
-		server.setSwapFree(swap.getFree() / 1024L);
-		server.setSwapUsed(swap.getUsed() / 1024L);
+		server.setSerSwap((int)(swap.getTotal() / 1024L));
+		server.setSerSwapFree((int)(swap.getFree() / 1024L));
+		server.setSerSwapUsed((int)(swap.getUsed() / 1024L));
+		
+		return server;
 	}
 	
 	public void getMemory() throws SigarException{
@@ -168,9 +171,8 @@ public abstract class ServerManager {
 	}
 	
 	
-	public List<CPU> getCpu() throws SigarException{
-		List<CPU> cpus = new ArrayList<CPU>();
-		CPU cpu = new CPU();
+	public List<CpuMsg> getCpuMsg() throws SigarException{
+		List<CpuMsg> cpus = new ArrayList<CpuMsg>();
 		  
 		// CPU的总量（单位：HZ）及CPU的相关信息  
 		CpuInfo infos[] = sigar.getCpuInfoList();
@@ -178,20 +180,22 @@ public abstract class ServerManager {
 		for (int i = 0; i < infos.length; i++) {// 不管是单块CPU还是多CPU都适用  
 		    CpuInfo info = infos[i];
 		    CpuPerc cpuPerc= cpuList[i];
-		    System.out.println("mhz=" + info.getMhz());// CPU的总量MHz  
-		    System.out.println("vendor=" + info.getVendor());// 获得CPU的卖主，如：Intel  
-		    System.out.println("model=" + info.getModel());// 获得CPU的类别，如：Celeron  
-		    System.out.println("cache size=" + info.getCacheSize());// 缓冲存储器数量  
+//		    System.out.println("mhz=" + info.getMhz());// CPU的总量MHz  
+//		    System.out.println("vendor=" + info.getVendor());// 获得CPU的卖主，如：Intel  
+//		    System.out.println("model=" + info.getModel());// 获得CPU的类别，如：Celeron  
+//		    System.out.println("cache size=" + info.getCacheSize());// 缓冲存储器数量  
+			
+		    CpuMsg cpu = new CpuMsg();
 		    
-		    cpu.setMsz(info.getMhz());
-		    cpu.setVendor(info.getVendor());
-		    cpu.setModel(info.getModel());
-		    cpu.setChacheSize(info.getCacheSize());
+		    cpu.setCpuMhz((int)info.getMhz());
+		    cpu.setCpuVendor(info.getVendor());
+		    cpu.setCpuModel(info.getModel());
+		    cpu.setCpuChacheSize((int)info.getCacheSize());
 		    
-		    cpu.setSystemUse(cpuPerc.getSys());
-		    cpu.setUserUse(cpuPerc.getUser());
-		    cpu.setIdel(cpuPerc.getIdle());
-		    cpu.setWait(cpuPerc.getWait());
+		    cpu.setCpuSystemUsed(cpuPerc.getSys());
+		    cpu.setCpuUserUsed(cpuPerc.getUser());
+		    cpu.setCpuIdle(cpuPerc.getIdle());
+		    cpu.setCpuWait(cpuPerc.getWait());
 		    
 		    cpus.add(cpu);
 		}  

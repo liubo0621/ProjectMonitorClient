@@ -1,12 +1,27 @@
 package com.client;
 
 
+import java.text.ParseException;
+import java.text.SimpleDateFormat;
+import java.util.Date;
+import java.util.List;
+
+import net.sf.json.JSONObject;
+
+import org.hyperic.sigar.SigarException;
+
 import com.manager.ProcessManager;
 import com.manager.ServerManager;
 import com.manager.platform.ProcessManagerLinux;
 import com.manager.platform.ProcessManagerWin;
 import com.manager.platform.ServerManagerLinux;
 import com.manager.platform.ServerManagerWin;
+import com.pojo.ClientMsg;
+import com.pojo.CpuMsg;
+import com.pojo.PhysicalMemoryMsg;
+import com.pojo.ProjectMsg;
+import com.pojo.ServerMsg;
+import com.pojo.ThreadMsg;
 import com.utils.Log;
 import com.utils.Tools;
 
@@ -21,8 +36,8 @@ public class Client implements Runnable{
 	private ServerManager serverManager;
 	
 	private int readFilePerSec;
-	private long processStartTime = 0; //应用程序开始时间  为第一次 读到文件时间
-	
+
+	private String processStartTime = null; //应用程序开始时间  为第一次 读到文件时间
 	private String statusFileName; //应用程序写出的文件
 	private String processName;
 	private String commandFileName;
@@ -54,8 +69,8 @@ public class Client implements Runnable{
 			try {
 				String msg = tools.readFile(statusFileName).replace("\\n", "");
 				if (msg != "") {
-					if (processStartTime ==  0) {
-						processStartTime = tools.getCurrentSecond();
+					if (processStartTime ==  null) {
+						processStartTime = tools.getCurrentTime();
 					}
 					
 					dealReadedMsg(msg);
@@ -83,12 +98,13 @@ public class Client implements Runnable{
 			String str = msgs[i]+ "/>";
 			Log.out.debug("read - " + str );
 			
-			//追加应用程序其他信息 和 服务器信息
-			//process msg
-			String processCupUsed = processManager.getProcessCPU();
-			String processManagerUsed = processManager.getProcessMemory();
-			
 			//向服务器发送收到的信息
+			try {
+				sendMsgToServer(str);
+			} catch (SigarException e) {
+				// TODO Auto-generated catch block
+				e.printStackTrace();
+			}
 			
 			//崩溃
 			if (getKeyValue(str, "crash").equals("true")) {
@@ -135,6 +151,72 @@ public class Client implements Runnable{
 			}
 		}
 	}
+	
+	private void sendMsgToServer(String baseMsg) throws SigarException{
+		//追加应用程序其他信息 和 服务器信息
+		//process msg
+		double proCpuRate = processManager.getProcessCpuUsed();
+		int proManagerUsed = processManager.getProcessMemoryUsed();
+		String proRuntime =tools.getBetweenTime(tools.getBetweenCurrrentTime(processStartTime));
+		int threadNum = Integer.parseInt(getKeyValue(baseMsg, "thread_num"));
+		int taskDoneNum = Integer.parseInt(getKeyValue(baseMsg, "task_done_num"));
+		
+		ProjectMsg projectMsg = new ProjectMsg();
+		projectMsg.setProName(processName);
+		projectMsg.setProCpuRate(proCpuRate);
+		projectMsg.setProMemory(proManagerUsed);
+		projectMsg.setProRunTime(proRuntime);
+		projectMsg.setProThreadNum(threadNum);
+		projectMsg.setProTaskDoneNum(taskDoneNum);
+		
+		//client msg
+		ClientMsg clientMsg = new ClientMsg();
+		clientMsg.setCliLogPath(tools.getLocalIP() + "\\logs\\client.log");
+		
+		//thread_msg
+		int threadId = Integer.parseInt(getKeyValue(baseMsg, "thread_id"));
+		int taskId =  Integer.parseInt(getKeyValue(baseMsg, "task_id"));
+		String taskName = getKeyValue(baseMsg, "task_name");
+		ThreadMsg threadMsg = new ThreadMsg();
+		threadMsg.setThrTaskId(taskId);
+		threadMsg.setThrThreadId(threadId);
+		threadMsg.setThrTaskName(taskName);
+		
+		//servermsg
+		ServerMsg serverMsg = serverManager.getServerInfo();
+		
+		//cpu
+		List<CpuMsg> cpuMsgs = serverManager.getCpuMsg();
+		
+		//physical_memory_msg
+		List<PhysicalMemoryMsg> physicalMemoryMsgs = serverManager.getPhysicMemory();
+		
+		
+		JSONObject json = new JSONObject();
+		json.put("projectMsg", projectMsg);
+		json.put("clientMsg", clientMsg);
+		json.put("threadMsg", threadMsg);
+		json.put("serverMsg", serverMsg);
+		json.put("cpuMsgs", cpuMsgs);
+		json.put("physicalMemoryMsgs", physicalMemoryMsgs);
+		
+		Log.out.debug("send - " + json.toString());
+	}
+	
+	public long getBetweenCurrrentTime(String oldTime){
+    	SimpleDateFormat df = new SimpleDateFormat("ss");
+		Date writeDate = null;
+		try {
+			writeDate = df.parse(oldTime);
+		} catch (ParseException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
+		Date currentDate = new Date();
+		long betweenTime = currentDate.getTime() - writeDate.getTime();
+		
+		return betweenTime;
+    }
 
 	
 	@Override

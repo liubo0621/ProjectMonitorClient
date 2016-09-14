@@ -22,15 +22,15 @@ public class ProcessManagerLinux extends ProcessManager {
 	}
 
 	@Override
-	public String getProcessMemory() {
+	public int getProcessMemoryUsed() {
 		// TODO Auto-generated method stub
-		return null;
+		return 0;
 	}
 
 	@Override
-	public String getProcessCPU() {
+	public double getProcessCpuUsed() {
 		// TODO Auto-generated method stub
-		return null;
+		return 0;
 	}
 
 	@Override

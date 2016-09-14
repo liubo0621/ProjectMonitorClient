@@ -1,9 +1,13 @@
 import java.io.FileNotFoundException;
+import java.text.ParseException;
+import java.text.SimpleDateFormat;
+import java.util.Date;
 
 import net.sf.json.JSONArray;
 import net.sf.json.JSONObject;
-import net.sf.json.util.JSONStringer;
-import net.sf.json.util.JSONTokener;
+
+import com.pojo.ServerMsg;
+import com.utils.Tools;
 
 
 /**
@@ -66,14 +70,19 @@ public class Test {
 		cupArray.add(jsonCPU1);
 		cupArray.add(jsonCPU2);
 		
+		ServerMsg server = new ServerMsg();
+		server.setSerMac("1212121212121212");
+		json.put("server", server);
+		
 		
 		json.put("cups", cupArray);
 		
 		String str = json.toString();
 		System.out.println(str);
 		
-		JSONTokener jso3 = new JSONTokener(str);
-		JSONObject json2 = (JSONObject) jso3.nextValue();
+//		JSONTokener jso3 = new JSONTokener(str);
+//		JSONObject json2 = (JSONObject) jso3.nextValue();
+		JSONObject json2 = JSONObject.fromObject(str);
 		String name = json2.getString("name");
 		System.out.println(name);
 		JSONArray cArray = json2.getJSONArray("cups");
@@ -81,6 +90,16 @@ public class Test {
 			JSONObject ob = cArray.getJSONObject(i);
 			System.out.println(ob.getString("name3"));
 		}
+		
+		
+		JSONObject s = json2.getJSONObject("server");
+		System.out.println(s.getString("serMac"));
+		
+		ServerMsg ser = (ServerMsg) JSONObject.toBean(s, ServerMsg.class);
+		System.out.println(ser.getSerMac());
+		
+		//---------------
+		
 		
 	
 	}
