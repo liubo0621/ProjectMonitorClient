@@ -99,12 +99,12 @@ public abstract class ServerManager {
 		for (int i = 0; i < fslist.length; i++) {
 			FileSystem fs = fslist[i];
 			
-			System.out.println(fs.getDevName());
-			System.out.println(fs.getTypeName());
+//			System.out.println(fs.getDevName());
+//			System.out.println(fs.getTypeName());
 			
 			PhysicalMemoryMsg phyMemory = new PhysicalMemoryMsg();
 			
-			phyMemory.setPhyName(fs.getDevName());
+			phyMemory.setPhyName(fs.getDevName() + "\\");
 			phyMemory.setPhySysTypeName(fs.getSysTypeName());
 			phyMemory.setPhyTypeName(fs.getTypeName());
 			
@@ -151,7 +151,7 @@ public abstract class ServerManager {
 	}
 	
 	public void getMemory() throws SigarException{
-		// 物理内存信息  
+		// 物理内存信息   
 		Mem mem = sigar.getMem();  
 		// 内存总量  
 		System.out.println("Total = " + mem.getTotal() / 1024L / 1024 + "M av");  

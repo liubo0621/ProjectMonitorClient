@@ -65,7 +65,7 @@ public class ProcessManagerWin extends ProcessManager {
 		String msg = tools.executeCommand("tasklist");
 		String[] msgs = msg.split("\n");
 		
-		String processMemory = null;
+		String processMemory = "0";
 		
 		for (String str: msgs) {
 //			System.out.println(str);

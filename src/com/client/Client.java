@@ -1,9 +1,11 @@
 package com.client;
 
 
-import java.text.ParseException;
-import java.text.SimpleDateFormat;
-import java.util.Date;
+import java.io.IOException;
+import java.io.InputStream;
+import java.io.OutputStream;
+import java.net.Socket;
+import java.net.UnknownHostException;
 import java.util.List;
 
 import net.sf.json.JSONObject;
@@ -34,6 +36,9 @@ public class Client implements Runnable{
 	private Tools tools;
 	private ProcessManager processManager;
 	private ServerManager serverManager;
+	private Socket socket = null;
+	private OutputStream os = null;
+	private InputStream is = null;
 	
 	private int readFilePerSec;
 
@@ -42,10 +47,18 @@ public class Client implements Runnable{
 	private String processName;
 	private String commandFileName;
 	private String process; // 应用程序 process1 process2 ...
+	private String serverIp;
+	private int serverPort;
+	
+	public static final int TRY_AGAIN = 5000;
+	
+	public static final String LISTEN_SERVER = "0";
+	public static final String LISTEN_PROCESS_STATUS = "1";	
 	
 	public Client(int processSequence){
 		tools = Tools.getTools();
 		
+		//init
 		process = "process" + processSequence;
 		processName = tools.getProperty(process + ".name");
 		Log.out.debug("管理应用程序< " + processName + " >");
@@ -54,6 +67,12 @@ public class Client implements Runnable{
 		statusFileName = tools.getProperty(process + ".status_file");
 		commandFileName = tools.getProperty(String.format("client%d.command_file", processSequence));
 		
+		//socket
+		serverIp = tools.getProperty("service.ip");
+		serverPort = Integer.parseInt(tools.getProperty("service.port"));
+		createSocket();
+		
+		//manager
 		String processMain = tools.getProperty(process + ".main_class"); //可以理解为进程名
 		if (tools.isWindows()) {
 			processManager =  new ProcessManagerWin(processMain);
@@ -64,8 +83,48 @@ public class Client implements Runnable{
 		}
 	}
 	
+	private void closeSocket(){
+		try {
+			is.close();
+			os.close();
+			socket.close();
+			is = null;
+			os =  null;
+			socket = null;
+		} catch (IOException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
+	}
+	
+	private void createSocket(){
+		try {
+			socket = new Socket(serverIp, serverPort);
+			//stream
+			os = socket.getOutputStream();
+			is = socket.getInputStream();
+		} catch (UnknownHostException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		} catch (IOException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
+	}
+	
 	public String readFile(){
 		while(true){
+			//如果socket 没有连接 则不读取文件
+			if(socket == null){
+				try {
+					Thread.sleep(TRY_AGAIN);
+					continue;
+				} catch (InterruptedException e) {
+					// TODO Auto-generated catch block
+					e.printStackTrace();
+				}
+			}
+			
 			try {
 				String msg = tools.readFile(statusFileName).replace("\\n", "");
 				if (msg != "") {
@@ -157,7 +216,8 @@ public class Client implements Runnable{
 		//process msg
 		double proCpuRate = processManager.getProcessCpuUsed();
 		int proManagerUsed = processManager.getProcessMemoryUsed();
-		String proRuntime =tools.getBetweenTime(tools.getBetweenCurrrentTime(processStartTime));
+		long betCurrentTime = tools.getBetweenCurrrentTime(processStartTime);
+		String proRuntime =tools.getBetweenTime(betCurrentTime) + " " + betCurrentTime;
 		int threadNum = Integer.parseInt(getKeyValue(baseMsg, "thread_num"));
 		int taskDoneNum = Integer.parseInt(getKeyValue(baseMsg, "task_done_num"));
 		
@@ -171,7 +231,7 @@ public class Client implements Runnable{
 		
 		//client msg
 		ClientMsg clientMsg = new ClientMsg();
-		clientMsg.setCliLogPath(tools.getLocalIP() + "\\logs\\client.log");
+		clientMsg.setCliLogPath("\\" + "\\" + tools.getLocalIP() + "\\logs\\client.log");
 		
 		//thread_msg
 		int threadId = Integer.parseInt(getKeyValue(baseMsg, "thread_id"));
@@ -200,28 +260,51 @@ public class Client implements Runnable{
 		json.put("cpuMsgs", cpuMsgs);
 		json.put("physicalMemoryMsgs", physicalMemoryMsgs);
 		
-		Log.out.debug("send - " + json.toString());
-	}
-	
-	public long getBetweenCurrrentTime(String oldTime){
-    	SimpleDateFormat df = new SimpleDateFormat("ss");
-		Date writeDate = null;
+		String msg = json.toString();
+		Log.out.debug("send - " +msg);
+		System.out.println("-------------"+msg.getBytes().length);
+		
 		try {
-			writeDate = df.parse(oldTime);
-		} catch (ParseException e) {
+			os.write(msg.getBytes());
+		} catch (IOException e) {
 			// TODO Auto-generated catch block
+			Log.out.error(e);
 			e.printStackTrace();
 		}
-		Date currentDate = new Date();
-		long betweenTime = currentDate.getTime() - writeDate.getTime();
-		
-		return betweenTime;
-    }
-
+	}
+	
+	public void ListenServer(){
+		Log.out.debug("监听服务");
+		boolean flag = true;
+		while(flag){
+			byte[] buffer = new byte[1024];
+			try {
+				int length = is.read(buffer);
+				String recMsg = new String(buffer, 0, length);
+				Log.out.debug("rec - " + recMsg);
+			} catch (IOException e) {//一般是服务端断开了
+				// TODO Auto-generated catch block
+				e.printStackTrace();
+				
+				//从新创建socket
+				createSocket();
+				try {
+					Thread.sleep(TRY_AGAIN);
+				} catch (InterruptedException e1) {
+					// TODO Auto-generated catch block
+					e1.printStackTrace();
+				}
+			}
+		}
+	}
 	
 	@Override
 	public void run() {
 		// TODO Auto-generated method stub
-		
+		if (Thread.currentThread().getName().equals(LISTEN_PROCESS_STATUS)) {
+			readFile();
+		}else if (Thread.currentThread().getName().equals(LISTEN_SERVER)){
+			ListenServer();
+		}
 	}
 }
