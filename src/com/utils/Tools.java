@@ -47,17 +47,6 @@ public class Tools {
 		return msg.trim();
 	}
 	
-	//使用Desktop启动应用程序    
-	public void startProgram(String programPath){
-		Log.out.info("启动应用程序：" + programPath);
-		try {
-			Desktop.getDesktop().open(new File(programPath));
-		} catch (Exception e) {
-			e.printStackTrace();
-			Log.out.error("应用程序：" + programPath + "不存在！");
-		}
-	}
-	
 	///////////////////////////////////////////////////
 	
 	private static String OS = System.getProperty("os.name").toLowerCase();  

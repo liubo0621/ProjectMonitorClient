@@ -20,10 +20,12 @@ import com.manager.platform.ServerManagerLinux;
 import com.manager.platform.ServerManagerWin;
 import com.pojo.ClientMsg;
 import com.pojo.CpuMsg;
+import com.pojo.ExceptionMsg;
 import com.pojo.PhysicalMemoryMsg;
 import com.pojo.ProjectMsg;
 import com.pojo.ServerMsg;
 import com.pojo.ThreadMsg;
+import com.utils.Constance;
 import com.utils.Log;
 import com.utils.Tools;
 
@@ -45,6 +47,7 @@ public class Client implements Runnable{
 	private String processStartTime = null; //应用程序开始时间  为第一次 读到文件时间
 	private String statusFileName; //应用程序写出的文件
 	private String processName;
+	private String processExeFile;
 	private String commandFileName;
 	private String process; // 应用程序 process1 process2 ...
 	private String serverIp;
@@ -61,6 +64,7 @@ public class Client implements Runnable{
 		//init
 		process = "process" + processSequence;
 		processName = tools.getProperty(process + ".name");
+		processExeFile = tools.getProperty(process + ".execute_file");
 		Log.out.debug("管理应用程序< " + processName + " >");
 		
 		readFilePerSec = Integer.parseInt(tools.getProperty("client.read_file_time")) * 1000;
@@ -149,6 +153,13 @@ public class Client implements Runnable{
 		
 		return str.substring(beginPos, endPos);
 	}
+	
+	private String setKeyValue(String str, String key, String value){
+		String oldValue = getKeyValue(str, key);
+		String oldKeyValue = key + "=" + oldValue;
+		String newKeyValue = key + "=" + value;
+		return str.replace(oldKeyValue, newKeyValue);
+	}
 
     
 	private void dealReadedMsg(String msg){
@@ -157,27 +168,21 @@ public class Client implements Runnable{
 			String str = msgs[i]+ "/>";
 			Log.out.debug("read - " + str );
 			
-			//向服务器发送收到的信息
-			try {
-				sendMsgToServer(str);
-			} catch (SigarException e) {
-				// TODO Auto-generated catch block
-				e.printStackTrace();
+			//任务异常
+			if(getKeyValue(str, "task_status").equals(String.valueOf(Constance.Task_Status.EXCEPTION))){
+				//  停止任务 （应用程序至任务状态 做下一任务）
+				String threadId = getKeyValue(str, "thread_id");
+				String taskId = getKeyValue(str, "task_id");
+				Log.out.info("任务异常： taskId = " + taskId + " threadId = " + threadId);
+				tools.writeFile(commandFileName, String.format("TASK:STOP %s,%s", taskId, threadId));
 			}
-			
-			//崩溃
-			if (getKeyValue(str, "crash").equals("true")) {
+			//非任务引起的崩溃
+			else if (getKeyValue(str, "exception").equals("true")) {
 				//1. 关闭应用程序
 				processManager.closeProcess();
 				
-				//2. 向应用程序发送导致crash的taskId
-				String taskId = getKeyValue(str, "task_id");
-				tools.writeFile(commandFileName, "TASK:CRASH " + taskId);
-				Log.out.info("崩溃： taskId = " + taskId);
-				
-				//3. 重启应用程序
-				String processExeFile = tools.getProperty(process + ".execute_file");
-				tools.startProgram(processExeFile);
+				//2. 启动应用程序
+				processManager.startProcess(processExeFile);
 			}
 			//判断是否超时 超时停止任务
 			else{
@@ -202,11 +207,19 @@ public class Client implements Runnable{
 					if (betweenTime > taskTime) {
 						//超时  停止任务 （应用程序至任务状态 做下一任务）
 						String threadId = getKeyValue(str, "thread_id");
-						Log.out.info("超时： taskId = " + taskId + " threadId = " + threadId);
+						Log.out.info("任务超时： taskId = " + taskId + " threadId = " + threadId);
 						tools.writeFile(commandFileName, String.format("TASK:STOP %s,%s", taskId, threadId));
+						str = setKeyValue(str, "task_status", String.valueOf(Constance.Task_Status.OVERTIME));
 					}
 				}
 				
+			}
+			//向服务器发送收到的信息
+			try {
+				sendMsgToServer(str);
+			} catch (SigarException e) {
+				// TODO Auto-generated catch block
+				e.printStackTrace();
 			}
 		}
 	}
@@ -236,11 +249,13 @@ public class Client implements Runnable{
 		//thread_msg
 		int threadId = Integer.parseInt(getKeyValue(baseMsg, "thread_id"));
 		int taskId =  Integer.parseInt(getKeyValue(baseMsg, "task_id"));
+		int taskStatus = Integer.parseInt(getKeyValue(baseMsg, "task_status"));
 		String taskName = getKeyValue(baseMsg, "task_name");
 		ThreadMsg threadMsg = new ThreadMsg();
 		threadMsg.setThrTaskId(taskId);
 		threadMsg.setThrThreadId(threadId);
 		threadMsg.setThrTaskName(taskName);
+		threadMsg.setThrTaskStatus(taskStatus);
 		
 		//servermsg
 		ServerMsg serverMsg = serverManager.getServerInfo();
@@ -251,12 +266,17 @@ public class Client implements Runnable{
 		//physical_memory_msg
 		List<PhysicalMemoryMsg> physicalMemoryMsgs = serverManager.getPhysicMemory();
 		
+		//exception
+		String excMsg = getKeyValue(baseMsg, "exception_msg");
+		ExceptionMsg exceptionMsg = new ExceptionMsg();
+		exceptionMsg.setExcMsg(excMsg);
 		
 		JSONObject json = new JSONObject();
 		json.put("projectMsg", projectMsg);
 		json.put("clientMsg", clientMsg);
 		json.put("threadMsg", threadMsg);
 		json.put("serverMsg", serverMsg);
+		json.put("execptionMsg", exceptionMsg);
 		json.put("cpuMsgs", cpuMsgs);
 		json.put("physicalMemoryMsgs", physicalMemoryMsgs);
 		
@@ -274,7 +294,6 @@ public class Client implements Runnable{
 	}
 	
 	public void ListenServer(){
-		Log.out.debug("监听服务");
 		boolean flag = true;
 		while(flag){
 			byte[] buffer = new byte[1024];
@@ -282,6 +301,7 @@ public class Client implements Runnable{
 				int length = is.read(buffer);
 				String recMsg = new String(buffer, 0, length);
 				Log.out.debug("rec - " + recMsg);
+				dealServerCommand(recMsg);
 			} catch (IOException e) {//一般是服务端断开了
 				// TODO Auto-generated catch block
 				e.printStackTrace();
@@ -296,6 +316,23 @@ public class Client implements Runnable{
 				}
 			}
 		}
+	}
+	
+	public void dealServerCommand(String command){
+		if (command.startsWith("TASK") || command.startsWith("THR")) {
+			tools.writeFile(commandFileName, command);
+		
+		}else if(command.equals("SERver:RESTART")){
+			serverManager.restartServer();
+		
+		}else if(command.equals("PROcess:RESTART")){
+			processManager.closeProcess();
+			processManager.startProcess(processExeFile);
+			
+		}else if(command.equals("PROcess:START")){
+			processManager.startProcess(processExeFile);
+		}
+		
 	}
 	
 	@Override
