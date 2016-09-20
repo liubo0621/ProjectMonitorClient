@@ -42,8 +42,6 @@ public class Client implements Runnable{
 	private OutputStream os = null;
 	private InputStream is = null;
 	
-	private int readFilePerSec;
-
 	private String processStartTime = null; //应用程序开始时间  为第一次 读到文件时间
 	private String statusFileName; //应用程序写出的文件
 	private String processName;
@@ -52,6 +50,8 @@ public class Client implements Runnable{
 	private String process; // 应用程序 process1 process2 ...
 	private String serverIp;
 	private int serverPort;
+	private int readFilePerSec;
+	private boolean flag;
 	
 	public static final int TRY_AGAIN = 5000;
 	
@@ -95,6 +95,7 @@ public class Client implements Runnable{
 			is = null;
 			os =  null;
 			socket = null;
+			flag = false;
 		} catch (IOException e) {
 			// TODO Auto-generated catch block
 			e.printStackTrace();
@@ -216,7 +217,7 @@ public class Client implements Runnable{
 			}
 			//向服务器发送收到的信息
 			try {
-				sendMsgToServer(str);
+				parseMsgToServer(str);
 			} catch (SigarException e) {
 				// TODO Auto-generated catch block
 				e.printStackTrace();
@@ -224,7 +225,7 @@ public class Client implements Runnable{
 		}
 	}
 	
-	private void sendMsgToServer(String baseMsg) throws SigarException{
+	private void parseMsgToServer(String baseMsg) throws SigarException{
 		//追加应用程序其他信息 和 服务器信息
 		//process msg
 		double proCpuRate = processManager.getProcessCpuUsed();
@@ -284,6 +285,10 @@ public class Client implements Runnable{
 		Log.out.debug("send - " +msg);
 		System.out.println("-------------"+msg.getBytes().length);
 		
+		sendMsgToServer(msg);
+	}
+	
+	private void sendMsgToServer(String msg){
 		try {
 			os.write(msg.getBytes());
 		} catch (IOException e) {
@@ -294,7 +299,7 @@ public class Client implements Runnable{
 	}
 	
 	public void ListenServer(){
-		boolean flag = true;
+		flag = true;
 		while(flag){
 			byte[] buffer = new byte[1024];
 			try {
@@ -319,10 +324,13 @@ public class Client implements Runnable{
 	}
 	
 	public void dealServerCommand(String command){
+		sendMsgToServer("DONE:" + command);
+		
 		if (command.startsWith("TASK") || command.startsWith("THR")) {
 			tools.writeFile(commandFileName, command);
 		
 		}else if(command.equals("SERver:RESTART")){
+			closeSocket();
 			serverManager.restartServer();
 		
 		}else if(command.equals("PROcess:RESTART")){
