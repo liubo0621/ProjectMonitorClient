@@ -164,26 +164,26 @@ public class Client implements Runnable{
 
     
 	private void dealReadedMsg(String msg){
-		String []msgs = msg.split("/>");
+		String []msgs = msg.split("\n");
 		for (int i = 0; i < msgs.length; ++i) {
-			String str = msgs[i]+ "/>";
+			String str = msgs[i];
 			Log.out.debug("read - " + str );
 			
-			//任务异常
-			if(getKeyValue(str, "task_status").equals(String.valueOf(Constance.Task_Status.EXCEPTION))){
-				//  停止任务 （应用程序至任务状态 做下一任务）
-				String threadId = getKeyValue(str, "thread_id");
-				String taskId = getKeyValue(str, "task_id");
-				Log.out.info("任务异常： taskId = " + taskId + " threadId = " + threadId);
-				tools.writeFile(commandFileName, String.format("TASK:STOP %s,%s", taskId, threadId));
-			}
 			//非任务引起的崩溃
-			else if (getKeyValue(str, "exception").equals("true")) {
+			if (getKeyValue(str, "exception").equals("true")) {
 				//1. 关闭应用程序
 				processManager.closeProcess();
 				
 				//2. 启动应用程序
 				processManager.startProcess(processExeFile);
+			}
+			//任务异常
+			else if(getKeyValue(str, "task_status").equals(String.valueOf(Constance.Task_Status.EXCEPTION))){
+				//  停止任务 （应用程序至任务状态 做下一任务）
+				String threadId = getKeyValue(str, "thread_id");
+				String taskId = getKeyValue(str, "task_id");
+				Log.out.info("任务异常： taskId = " + taskId + " threadId = " + threadId);
+				tools.writeFile(commandFileName, String.format("TASK:STOP %s,%s", taskId, threadId));
 			}
 			//判断是否超时 超时停止任务
 			else{

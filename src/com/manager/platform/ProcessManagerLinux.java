@@ -30,6 +30,7 @@ public class ProcessManagerLinux extends ProcessManager {
 	@Override
 	public double getProcessCpuUsed() {
 		// TODO Auto-generated method stub
+		//top -u oracle
 		return 0;
 	}
 
