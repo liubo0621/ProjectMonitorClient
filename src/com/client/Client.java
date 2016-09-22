@@ -42,7 +42,6 @@ public class Client implements Runnable{
 	private OutputStream os = null;
 	private InputStream is = null;
 	
-	private String processStartTime = null; //应用程序开始时间  为第一次 读到文件时间
 	private String statusFileName; //应用程序写出的文件
 	private String processName;
 	private String processExeFile;
@@ -76,13 +75,11 @@ public class Client implements Runnable{
 		serverPort = Integer.parseInt(tools.getProperty("service.port"));
 		createSocket();
 		
-		//manager
-		String processMain = tools.getProperty(process + ".main_class"); //可以理解为进程名
 		if (tools.isWindows()) {
-			processManager =  new ProcessManagerWin(processMain);
+			processManager =  new ProcessManagerWin();
 			serverManager = new ServerManagerWin();
 		}else{
-			processManager =  new ProcessManagerLinux(processMain);
+			processManager =  new ProcessManagerLinux();
 			serverManager = new ServerManagerLinux();
 		}
 	}
@@ -133,10 +130,6 @@ public class Client implements Runnable{
 			try {
 				String msg = tools.readFile(statusFileName).replace("\\n", "");
 				if (msg != "") {
-					if (processStartTime ==  null) {
-						processStartTime = tools.getCurrentTime();
-					}
-					
 					dealReadedMsg(msg);
 				}
 				Thread.sleep(readFilePerSec);
@@ -169,6 +162,9 @@ public class Client implements Runnable{
 			String str = msgs[i];
 			Log.out.debug("read - " + str );
 			
+			String processId = getKeyValue(str, "process_id");
+			processManager.setProcessId(processId);
+			
 			//非任务引起的崩溃
 			if (getKeyValue(str, "exception").equals("true")) {
 				//1. 关闭应用程序
@@ -178,7 +174,7 @@ public class Client implements Runnable{
 				processManager.startProcess(processExeFile);
 			}
 			//任务异常
-			else if(getKeyValue(str, "task_status").equals(String.valueOf(Constance.Task_Status.EXCEPTION))){
+			else if(getKeyValue(str, "task_status").equals(String.valueOf(Constance.TaskStatus.EXCEPTION))){
 				//  停止任务 （应用程序至任务状态 做下一任务）
 				String threadId = getKeyValue(str, "thread_id");
 				String taskId = getKeyValue(str, "task_id");
@@ -210,7 +206,7 @@ public class Client implements Runnable{
 						String threadId = getKeyValue(str, "thread_id");
 						Log.out.info("任务超时： taskId = " + taskId + " threadId = " + threadId);
 						tools.writeFile(commandFileName, String.format("TASK:STOP %s,%s", taskId, threadId));
-						str = setKeyValue(str, "task_status", String.valueOf(Constance.Task_Status.OVERTIME));
+						str = setKeyValue(str, "task_status", String.valueOf(Constance.TaskStatus.OVERTIME));
 					}
 				}
 				
@@ -230,8 +226,8 @@ public class Client implements Runnable{
 		//process msg
 		double proCpuRate = processManager.getProcessCpuUsed();
 		int proManagerUsed = processManager.getProcessMemoryUsed();
-		long betCurrentTime = tools.getBetweenCurrrentTime(processStartTime);
-		String proRuntime =tools.getBetweenTime(betCurrentTime) + " " + betCurrentTime;
+		long proRuntime = processManager.getRunTime();
+		String ISO8601Time =tools.getISO8601BetweenTime(proRuntime) + " " + proRuntime;
 		int threadNum = Integer.parseInt(getKeyValue(baseMsg, "thread_num"));
 		int taskDoneNum = Integer.parseInt(getKeyValue(baseMsg, "task_done_num"));
 		
@@ -239,9 +235,14 @@ public class Client implements Runnable{
 		projectMsg.setProName(processName);
 		projectMsg.setProCpuRate(proCpuRate);
 		projectMsg.setProMemory(proManagerUsed);
-		projectMsg.setProRunTime(proRuntime);
+		projectMsg.setProRunTime(ISO8601Time);
 		projectMsg.setProThreadNum(threadNum);
 		projectMsg.setProTaskDoneNum(taskDoneNum);
+		if (processManager.isProcessRunning()) {
+			projectMsg.setProStatus(Constance.ProjectStatus.RUNNING);
+		}else{
+			projectMsg.setProStatus(Constance.ProjectStatus.STOP);
+		}
 		
 		//client msg
 		ClientMsg clientMsg = new ClientMsg();
@@ -260,6 +261,7 @@ public class Client implements Runnable{
 		
 		//servermsg
 		ServerMsg serverMsg = serverManager.getServerInfo();
+		serverMsg.setSerStatus(Constance.ServerStatus.RUNNING);
 		
 		//cpu
 		List<CpuMsg> cpuMsgs = serverManager.getCpuMsg();

@@ -8,12 +8,6 @@ import com.manager.ProcessManager;
  * 2016Äê9ÔÂ13ÈÕ
  */
 public class ProcessManagerLinux extends ProcessManager {
-
-	private String processName;
-	public ProcessManagerLinux(String processName){
-		super();
-		this.processName = processName;
-	}
 	
 	@Override
 	protected String getProcessPID() {

@@ -1,6 +1,5 @@
 package com.utils;
 
-import java.awt.Desktop;
 import java.io.BufferedReader;
 import java.io.File;
 import java.io.FileInputStream;
@@ -134,7 +133,7 @@ public class Tools {
     			}
 
     			is.close();
-//    			file.delete();
+    			file.delete();
 			}
 		
 		} catch (FileNotFoundException e) {
@@ -155,17 +154,31 @@ public class Tools {
     	return df.format(new Date());
     }
     
+    public long getBetweenCurrrentTime(long oldTime){
+    	long betweenTime = new Date().getTime() - oldTime;
+		
+		return betweenTime / 1000L;
+    	
+    }
+    
+    /**
+     * @Method: getBetweenCurrrentTime 
+     * @Description:
+     * @param oldTime yyyy-MM-dd HH:mm:ss格式
+     * @return
+     * long
+     */
     public long getBetweenCurrrentTime(String oldTime){
     	SimpleDateFormat df = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
-		Date writeDate = null;
+		Date oldDate = null;
 		try {
-			writeDate = df.parse(oldTime);
+			oldDate = df.parse(oldTime);
 		} catch (ParseException e) {
 			// TODO Auto-generated catch block
 			e.printStackTrace();
 		}
 		Date currentDate = new Date();
-		long betweenTime = currentDate.getTime() - writeDate.getTime();
+		long betweenTime = currentDate.getTime() - oldDate.getTime();
 		
 		return betweenTime / 1000L;
     }
@@ -177,7 +190,7 @@ public class Tools {
      * @return P1Y3M3DT2H2M2S 格式
      * String
      */
-    public String getBetweenTime(long time){
+    public String getISO8601BetweenTime(long time){
     	long second = time % 60;
 		long minute = ((time - second) / 60) % 60;
 		long hour = ((time - minute * 60 - second) / (60 * 60)) % 24;
@@ -195,7 +208,7 @@ public class Tools {
     public static void main(String[] args) {
 		long time = 1 * 365 * 24 * 60 * 60 + 3 * 30 * 24 * 60 * 60 + 3 * 24 * 60 * 60 + 2 * 60 * 60 + 2 * 60 + 2;//1y2m3d2h2m2s
 		System.out.println(String.format("time%d", time));
-		String btw = Tools.getTools().getBetweenTime(time);	
+		String btw = Tools.getTools().getISO8601BetweenTime(time);	
 		
 		System.out.println(btw);
 		
