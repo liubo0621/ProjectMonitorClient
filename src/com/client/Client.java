@@ -293,6 +293,7 @@ public class Client implements Runnable{
 	
 	private void sendMsgToServer(String msg){
 		try {
+			msg = "<msg=" + msg+"/>";
 			os.write(msg.getBytes());
 		} catch (IOException e) {
 			// TODO Auto-generated catch block

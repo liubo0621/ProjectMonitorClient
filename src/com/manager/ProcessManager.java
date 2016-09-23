@@ -35,6 +35,7 @@ public abstract class ProcessManager {
 	
 	public double getProcessCpuUsed(){
 		double cpuUsed = 0;
+		System.out.println("processId " + processId);
 		if (processId != null) {
 			Long pid = Long.parseLong(processId);
 			Sigar sigar = new Sigar();
