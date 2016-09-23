@@ -34,12 +34,6 @@ public class ProcessManagerWin extends ProcessManager {
 	}
 
 	@Override
-	public double getProcessCpuUsed() {
-		// TODO Auto-generated method stub
-		return 0;
-	}
-
-	@Override
 	public void closeProcess() {
 		// TODO Auto-generated method stub
 		String PID = getProcessPID();

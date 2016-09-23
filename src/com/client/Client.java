@@ -198,7 +198,7 @@ public class Client implements Runnable{
 				if (!isDone) {
 					//求当前时间与写文件的时间差
 					String writeFileTime = getKeyValue(str, "write_file_time");
-					long betweenTime = tools.getBetweenCurrrentTime(writeFileTime);
+					long betweenTime = tools.getBetweenCurrrentTime(writeFileTime) / 1000L;
 					
 					int taskTime = Integer.parseInt(getKeyValue(str, "task_length")) * 60;
 					if (betweenTime > taskTime) {
@@ -226,7 +226,7 @@ public class Client implements Runnable{
 		//process msg
 		double proCpuRate = processManager.getProcessCpuUsed();
 		int proManagerUsed = processManager.getProcessMemoryUsed();
-		long proRuntime = processManager.getRunTime();
+		long proRuntime = processManager.getRunTime() / 1000;
 		String ISO8601Time =tools.getISO8601BetweenTime(proRuntime) + " " + proRuntime;
 		int threadNum = Integer.parseInt(getKeyValue(baseMsg, "thread_num"));
 		int taskDoneNum = Integer.parseInt(getKeyValue(baseMsg, "task_done_num"));

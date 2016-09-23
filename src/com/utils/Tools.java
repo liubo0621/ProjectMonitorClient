@@ -154,18 +154,25 @@ public class Tools {
     	return df.format(new Date());
     }
     
+    /**
+     * @Method: getBetweenCurrrentTime 
+     * @Description: 取和当前的时间间隔
+     * @param oldTime 毫秒
+     * @return 毫秒
+     * long
+     */
     public long getBetweenCurrrentTime(long oldTime){
     	long betweenTime = new Date().getTime() - oldTime;
 		
-		return betweenTime / 1000L;
+		return betweenTime;
     	
     }
     
     /**
      * @Method: getBetweenCurrrentTime 
-     * @Description:
+     * @Description: 取和当前的时间间隔
      * @param oldTime yyyy-MM-dd HH:mm:ss格式
-     * @return
+     * @return 毫秒
      * long
      */
     public long getBetweenCurrrentTime(String oldTime){
@@ -180,7 +187,7 @@ public class Tools {
 		Date currentDate = new Date();
 		long betweenTime = currentDate.getTime() - oldDate.getTime();
 		
-		return betweenTime / 1000L;
+		return betweenTime;
     }
     
     /**
