@@ -61,6 +61,7 @@ public class Client implements Runnable{
 		tools = Tools.getTools();
 		
 		//init
+		flag = true;
 		process = "process" + processSequence;
 		processName = tools.getProperty(process + ".name");
 		processExeFile = tools.getProperty(process + ".execute_file");
@@ -114,8 +115,8 @@ public class Client implements Runnable{
 		}
 	}
 	
-	public String readFile(){
-		while(true){
+	public void readFile(){
+		while(flag){
 			//如果socket 没有连接 则不读取文件
 			if(socket == null){
 				try {
@@ -301,7 +302,6 @@ public class Client implements Runnable{
 	}
 	
 	public void ListenServer(){
-		flag = true;
 		while(flag){
 			byte[] buffer = new byte[1024];
 			try {
